@@ -1,0 +1,9 @@
+config:
+  log-path: build.log
+tasks:
+  # - cmd: export SOMEVAR=yup
+  - cmd: source example/scripts/setvar.sh
+
+  - cmd: export; echo ...${SOMEVAR}... ; sleep 3
+
+

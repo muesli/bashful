@@ -261,7 +261,7 @@ func (task *Task) inflateCmd() {
 	readFd, writeFd, err := os.Pipe()
 	CheckError(err, "Could not open env pipe for child shell")
 
-	task.Command.Cmd = exec.Command(shell, "-c", task.Config.CmdString + "; env >&3")
+	task.Command.Cmd = exec.Command(shell, "-c", task.Config.CmdString+"; env >&3")
 
 	// allow the child process to provide env vars via a pipe (FD3)
 	task.Command.Cmd.ExtraFiles = []*os.File{writeFd}
@@ -473,7 +473,7 @@ func (task *Task) runSingleCmd(resultChan chan CmdEvent, waiter *sync.WaitGroup,
 
 	// copy env vars into proc
 	for k, v := range environment {
-		task.Command.Cmd.Env = append(task.Command.Cmd.Env, fmt.Sprintf("%q=%q", k, v))
+		task.Command.Cmd.Env = append(task.Command.Cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 
 	task.Command.Cmd.Start()
@@ -564,13 +564,17 @@ func (task *Task) runSingleCmd(resultChan chan CmdEvent, waiter *sync.WaitGroup,
 	CheckError(err, "Could not read env vars from child shell")
 
 	if environment != nil {
-		lines := strings.Split(string(data[:]),`\n`)
+		lines := strings.Split(string(data[:]), "\n")
 		for _, line := range lines {
-			fields := strings.SplitN(line, "=", 2)
-			environment[fields[0]] = fields[1]
+			fields := strings.SplitN(strings.TrimSpace(line), "=", 2)
+			if len(fields) == 2 {
+				environment[fields[0]] = fields[1]
+			} else if len(fields) == 1 {
+				environment[fields[0]] = ""
+			}
 		}
 	}
-	
+
 	if returnCode == 0 || task.Config.IgnoreFailure {
 		resultChan <- CmdEvent{Task: task, Status: StatusSuccess, Complete: true, ReturnCode: returnCode}
 	} else {
